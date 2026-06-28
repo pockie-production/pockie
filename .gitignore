@@ -21,3 +21,6 @@ pnpm-debug.log*
 .vscode/
 
 ai_agent_guidelines/
+
+# Ignore AI Agent Guidelines
+ai_agent_guidelines/
