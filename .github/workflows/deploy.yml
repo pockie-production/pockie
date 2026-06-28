@@ -47,4 +47,4 @@ jobs:
         with:
           context: .
           push: true
-          tags: ghcr.io/pockie/${{ github.event.repository.name }}:${{ steps.extract_branch.outputs.branch == 'main' && 'latest' || 'demo' }}
+          tags: ghcr.io/pockie-production/${{ github.event.repository.name }}:${{ steps.extract_branch.outputs.branch == 'main' && 'latest' || 'demo' }}
