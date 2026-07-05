@@ -1,117 +1,117 @@
-# Hướng Dẫn Chạy Dự Án Pockie (Local Environment)
+# Hướng Dẫn Khởi Chạy Dự Án Pockie (Môi trường Local)
 
-Tài liệu này hướng dẫn chi tiết từ A-Z cách khởi chạy toàn bộ hệ sinh thái Pockie trên môi trường Local, phục vụ cho mục đích phát triển và chấm thi.
+Tài liệu này cung cấp các bước chi tiết để khởi chạy toàn bộ hệ sinh thái Pockie trên môi trường phát triển (Local), phục vụ cho quá trình đánh giá và chấm thi. Hệ thống bao gồm 1 Backend (NestJS), 3 Frontend Web (React/Vite), 1 Mobile App (Flutter), cùng hệ thống cơ sở hạ tầng (PostgreSQL, MinIO) được đóng gói qua Docker.
 
 ## 0. Yêu Cầu Hệ Thống (Prerequisites)
-Để đảm bảo dự án chạy ổn định, máy tính của bạn cần được cài đặt sẵn:
-- **Node.js**: Phiên bản `v18.x` trở lên.
-- **Docker** & **Docker Compose**: Dành cho Database và Object Storage.
-- **Flutter SDK**: Phiên bản `3.19.x` trở lên (nếu muốn chạy app).
-- Trình duyệt Chrome hoặc các trình duyệt nhân Chromium.
+Trước khi bắt đầu, cần đảm bảo hệ thống đã cài đặt sẵn các công cụ sau:
+- **Node.js**: Phiên bản `v18.x` trở lên (Khuyến nghị dùng công cụ quản lý phiên bản như `nvm`).
+- **Docker** & **Docker Compose**: Dành cho việc khởi chạy Database và Object Storage độc lập.
+- **Flutter SDK**: Phiên bản `3.19.x` trở lên (Dành riêng cho việc biên dịch và chạy Mobile App).
+- Trình duyệt web (Google Chrome, Microsoft Edge, hoặc Safari).
 
 ---
 
-## Bước 1: Khởi chạy Database & Storage (Docker)
+## Bước 1: Khởi Chạy Hạ Tầng (Database & Storage)
+Hệ thống yêu cầu **PostgreSQL** (cơ sở dữ liệu chính) và **MinIO** (lưu trữ file, ảnh chụp eKYC, tài liệu). Cấu hình đã được cung cấp sẵn thông qua file `docker-compose.yml`.
 
-Hệ thống yêu cầu **PostgreSQL** (Database chính) và **MinIO** (Object Storage để lưu trữ file, ảnh eKYC). Các cấu hình này đã có sẵn trong thư mục `deploy-vps/docker-compose.yml`.
-
-1. Mở terminal và di chuyển vào thư mục `deploy-vps`:
+1. Di chuyển vào thư mục chứa cấu hình Docker:
    ```bash
    cd deploy-vps
    ```
-2. Khởi chạy ngầm Database và MinIO:
+2. Khởi chạy các dịch vụ hạ tầng ở chế độ ngầm (detached mode):
    ```bash
    docker-compose up -d pockie-postgres pockie-minio
    ```
-3. *(Optional)* Để chắc chắn, bạn có thể chạy `docker ps` để kiểm tra. Sẽ có 2 container đang chạy ở port `5432` (Postgres) và `9000` (MinIO).
+3. Kiểm tra trạng thái các container để đảm bảo hệ thống đã chạy:
+   ```bash
+   docker ps
+   ```
+   *Kết quả mong đợi: Có 2 container trạng thái `Up`, trong đó Postgres lắng nghe ở cổng `5432` và MinIO lắng nghe ở cổng `9000` & `9001`.*
 
 ---
 
-## Bước 2: Cấu hình và chạy Backend API (`core-api-pockie`)
+## Bước 2: Cấu Hình & Khởi Chạy Backend API (`core-api-pockie`)
+Backend API đóng vai trò xử lý nghiệp vụ chính, giao tiếp cơ sở dữ liệu và tích hợp các API của VNPT.
 
-Backend được phát triển bằng **NestJS** kết hợp **Prisma ORM**.
-
-1. Mở một terminal mới, di chuyển vào thư mục Backend:
+1. Di chuyển vào thư mục Backend:
    ```bash
    cd core-api-pockie
    ```
-2. Cài đặt các thư viện phụ thuộc:
+2. Cài đặt các gói thư viện phụ thuộc:
    ```bash
    npm install
    ```
-3. **Cấu hình biến môi trường**: 
-   Dự án đã có sẵn file `.env.example`. Hãy tạo một file `.env` bằng cách copy nội dung từ file example:
+3. Cấu hình biến môi trường:
+   Dự án đã đính kèm file cấu hình mẫu `.env.example`. Cần tạo file `.env` chính thức bằng lệnh sau:
    ```bash
    cp .env.example .env
    ```
-   *(Trong file `.env` đã thiết lập sẵn URL kết nối tới Postgres và Minio ở Bước 1. Mặc định bạn không cần sửa gì thêm).*
-4. Khởi tạo Prisma Client và chạy Migration để tạo/cập nhật cấu trúc database:
+   *Lưu ý: File `.env.example` đã được cấu hình sẵn các chuỗi kết nối (`DATABASE_URL`) trỏ tới PostgreSQL và MinIO vừa được khởi chạy ở Bước 1. Không cần thiết lập thủ công trừ khi có thay đổi cổng mạng ở máy cục bộ.*
+4. Khởi tạo Prisma Client và đồng bộ cấu trúc Database (Migration):
    ```bash
    npx prisma generate
    npx prisma migrate dev
    ```
-5. Khởi chạy Backend ở chế độ development (tự động reload code khi có thay đổi):
+5. Khởi chạy Backend ở chế độ phát triển:
    ```bash
    npm run start:dev
    ```
-✅ Backend lúc này sẽ lắng nghe tại **`http://localhost:3000`**. Bạn có thể kiểm tra xem API đã sẵn sàng chưa bằng cách truy cập Swagger UI: `http://localhost:3000/api`.
+   *Kết quả mong đợi: Terminal hiển thị thông báo khởi tạo thành công và ứng dụng lắng nghe tại `http://localhost:3000`. Có thể truy cập `http://localhost:3000/api` để xem tài liệu chi tiết (Swagger UI).*
 
 ---
 
-## Bước 3: Khởi chạy các Frontend Web (React / Vite)
+## Bước 3: Khởi Chạy Hệ Sinh Thái Frontend Web (React / Vite)
+Hệ thống gồm 3 ứng dụng Web độc lập, đóng vai trò phục vụ 3 nhóm đối tượng khác nhau. Cần mở **3 cửa sổ Terminal riêng biệt** để khởi chạy từng dự án.
 
-Hệ sinh thái Pockie bao gồm 3 ứng dụng web độc lập, tất cả đều được build bằng Vite. Bạn cần mở **3 terminal khác nhau** cho từng web. Cách khởi chạy cho cả 3 hoàn toàn giống nhau:
-
-### 3.1. Ứng dụng Web dành cho End-User (User Web)
-Đây là màn hình cho người dùng cuối quản lý chi tiêu.
+### 3.1. User Web (Dành cho Người dùng cuối)
+Hệ thống ví cá nhân, quản lý chi tiêu và tích hợp AI Chat, Smart Scan.
 ```bash
 cd user-web-pockie
 npm install
 npm run dev
 ```
-✅ Ứng dụng thường sẽ khởi chạy tại: **`http://localhost:5173`**
+*Truy cập ứng dụng tại: `http://localhost:5173`*
 
-### 3.2. Ứng dụng Web cho B2B / Doanh nghiệp (Customer Web)
-Dành cho đối tác đăng ký dịch vụ của Pockie.
+### 3.2. Customer Web (Dành cho Khách hàng Doanh nghiệp B2B)
+Hệ thống đăng ký, tích hợp và quản lý dịch vụ dành cho đối tác.
 ```bash
 cd customer-web-pockie
 npm install
 npm run dev
 ```
-✅ Ứng dụng thường sẽ khởi chạy tại: **`http://localhost:5174`**
+*Truy cập ứng dụng tại: `http://localhost:5174`*
 
-### 3.3. Ứng dụng Web Quản trị (Internal Web)
-Hệ thống cho Admin Pockie phê duyệt eKYC, theo dõi chỉ số.
+### 3.3. Internal Web (Dành cho Quản trị viên Pockie)
+Hệ thống nội bộ phục vụ kiểm duyệt hồ sơ eKYC, phân tích chỉ số rủi ro, vận hành.
 ```bash
 cd internal-web-pockie
 npm install
 npm run dev
 ```
-✅ Ứng dụng thường sẽ khởi chạy tại: **`http://localhost:5175`**
+*Truy cập ứng dụng tại: `http://localhost:5175`*
 
 ---
 
-## Bước 4: Khởi chạy Mobile App (`app_pockie`)
+## Bước 4: Khởi Chạy Mobile App (`app_pockie`)
+Ứng dụng di động đa nền tảng mang lại trải nghiệm tương tự User Web nhưng hỗ trợ sâu hơn các tính năng phần cứng (Camera, NFC).
 
-Mobile app đa nền tảng được phát triển bằng **Flutter**.
-
-1. Đảm bảo bạn đang bật máy ảo (Android Emulator / iOS Simulator) hoặc đã cắm thiết bị thật (có bật chế độ USB Debugging).
-2. Mở một terminal mới và di chuyển vào thư mục app:
+1. Bật trình mô phỏng (Android Emulator / iOS Simulator) hoặc kết nối thiết bị vật lý (đã bật chế độ USB Debugging).
+2. Di chuyển vào thư mục chứa mã nguồn App:
    ```bash
    cd app_pockie
    ```
-3. Tải tất cả các package/thư viện của Dart:
+3. Cài đặt các package Dart:
    ```bash
    flutter pub get
    ```
-4. Build và khởi chạy ứng dụng lên thiết bị:
+4. Biên dịch và khởi chạy ứng dụng lên thiết bị:
    ```bash
    flutter run
    ```
 
 ---
 
-## Những Vấn Đề Thường Gặp (Troubleshooting)
-- **Lỗi Port bị trùng**: Đảm bảo cổng `5432` (nếu bạn có cài sẵn Postgres ở máy), cổng `9000` và `3000` không bị ứng dụng khác chiếm dụng trước khi chạy.
-- **Lỗi không kết nối được Database**: Kiểm tra file `.env` ở `core-api-pockie` đã trỏ đúng tới địa chỉ `localhost:5432` theo chuẩn của Prisma chưa.
-- **Backend báo lỗi thiếu Prisma Client**: Chắc chắn bạn đã chạy lệnh `npx prisma generate` trước khi start Backend.
+## Các Vấn Đề Thường Gặp (Troubleshooting)
+- **Xung đột cổng mạng (Port Conflict)**: Cần đảm bảo các cổng `3000`, `5432`, `9000` không bị chiếm dụng bởi các phần mềm khác đang chạy ngầm trên máy (ví dụ: máy đã cài sẵn PostgreSQL local từ trước).
+- **Lỗi kết nối cơ sở dữ liệu ở Backend**: Kiểm tra lại tiến trình Docker ở Bước 1. Đảm bảo container `pockie-postgres` đang hoạt động bình thường.
+- **Lỗi thiếu Prisma Client**: Nếu tiến trình Backend báo lỗi `Cannot find module '@prisma/client'`, yêu cầu dừng Backend và chạy lại lệnh `npx prisma generate` trong thư mục `core-api-pockie`.
